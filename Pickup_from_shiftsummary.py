@@ -4,7 +4,9 @@ from playwright.sync_api import sync_playwright
 import re
 import pandas as pd
 import sys
-
+import time
+import datetime
+import os
 #
 #
 #   python .\Pickup_from_shiftsummary.py BL2
@@ -15,7 +17,7 @@ print("argv:",sys.argv)
 print("arg1:" + sys.argv[1])
 search_string = sys.argv[1]
 
-url = "http://saclaopr19.spring8.or.jp/~summary/display_ui.html?sort=main_id%20desc&limit=0,3#SEARCH" # JavaScriptでコンテンツが動的に生成されるようなURL
+url = "http://saclaopr19.spring8.or.jp/~summary/display_ui.html?sort=main_id%20desc&limit=0,6#SEARCH" # JavaScriptでコンテンツが動的に生成されるようなURL
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True) # headless=True でGUIなしで実行
@@ -32,7 +34,7 @@ with sync_playwright() as p:
         # page.wait_for_selector("#some_dynamic_element_id")
         # JavaScriptが実行された後の完全なHTMLソースを取得
         current_dom_html = page.content()
-        print(current_dom_html)
+        #print(current_dom_html)
         print("\n\n//////////////////////////DOM取得完了//////////////////////////////\n\n\n")
         
         
@@ -53,29 +55,33 @@ with sync_playwright() as p:
             # 各テーブル内の行をループ処理
             for row in table.find_all('tr'):
                 if search_string in row.get_text():
-                    i = 0
 #                    print(f"一致した行: {row.get_text()}")
 #                    print(f"一致した行: {row}")
-
                     html_row = row.decode_contents()  # 行のHTMLを取得
-                    # BeautifulSoupでHTMLを解析
                     soup_row = BeautifulSoup(html_row, 'html.parser')
-                    # 行のセルを取得
                     cells = soup_row.find_all(['th', 'td'])
-#                    csv_row = ','.join(cell.get_text(strip=True) for cell in cells)
-#                    print(csv_row)
-                    # セルのテキストをリストに格納
                     row_list = [cell.get_text(strip=True) for cell in cells]
                     print(row_list)
+                    row_list[1] = row_list[1].replace('SASE ', '')
+                    row_list[1] = re.sub(r"\(.*?\)", "", row_list[1])
+                    row_list[1] = re.sub(r"（.*?）", "", row_list[1])
                     del row_list[10]
                     del row_list[9]
                     del row_list[8]
                     del row_list[5]
                     del row_list[4]
                     del row_list[2]
-#                    List_sum.append(row_list[0:i+1] + row_list[2:])  # 最初のセルと2番目以降のセルを結合   
-#                    List_sum.append(row_list[0] + " | " + row_list[1] + " | " + row_list[3])
-                    List_sum.append(row_list)
+                    row_list.insert(3, '30') # 繰返しを追加
+                    
+                    # 数字だけ float に変換（整数も小数も対応）
+                    converted = [float(x) if x.replace('.', '', 1).isdigit() else x for x in row_list]
+                    print(converted)
+
+                    if "加速器調整" in converted[1] or "BL" in converted[1]:
+                        print("文字列に 'abc' が含まれています。")
+                    else:
+                        print("文字列に 'abc' は含まれていません。")
+                        List_sum.append(converted)
                     
         if List_sum:
             print("結果を表示:")
@@ -92,11 +98,15 @@ with sync_playwright() as p:
             df = pd.DataFrame(List_sum_unique)
 
             # Excelファイルに出力
-            output_file = 'output.xlsx'
+            output_file = 'output_' + search_string + '.xlsx'
             df.to_excel(output_file, index=False, header=False)
             print(f'Excelファイル "{output_file}" に出力しました。')
-            
-
+            if abs(time.time() - os.path.getmtime(output_file))<10:
+#                input("正常に「.xlsx」が作成されました。\nPress Enter to Exit...")
+                os.startfile(output_file)
+            else:
+                print(f"異常：作成されたはずの.xlsxのタイムスタンプが古いです。 最終更新時刻: {datetime.datetime.fromtimestamp(os.path.getmtime(output_file))}")
+         
         else:
             print("一致する行は見つかりませんでした。")
 
