@@ -2,6 +2,18 @@ import requests
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 import re
+import pandas as pd
+import sys
+
+#
+#
+#   python .\Pickup_from_shiftsummary.py BL2
+#
+
+print("arg len:",len(sys.argv))
+print("argv:",sys.argv)
+print("arg1:" + sys.argv[1])
+search_string = sys.argv[1]
 
 url = "http://saclaopr19.spring8.or.jp/~summary/display_ui.html?sort=main_id%20desc&limit=0,3#SEARCH" # JavaScriptでコンテンツが動的に生成されるようなURL
 
@@ -31,10 +43,10 @@ with sync_playwright() as p:
         tables = soup.find_all('table')
 
         # 特定の文字列
-        search_string = 'BL2'  # ここに検索したい文字列を入力
+        #search_string = 'BL2'  # ここに検索したい文字列を入力
 
         # 一致した行を格納するリスト
-        matching_rows = []
+        List_sum = []
 
         # 各テーブルをループ処理
         for table in tables:
@@ -55,15 +67,36 @@ with sync_playwright() as p:
                     # セルのテキストをリストに格納
                     row_list = [cell.get_text(strip=True) for cell in cells]
                     print(row_list)
-#                    matching_rows.append(row_list[0:i+1] + row_list[2:])  # 最初のセルと2番目以降のセルを結合   
-#                    matching_rows.append(row_list[0] + " | " + row_list[1] + " | " + row_list[3])
-                    matching_rows.append(row_list)
-
-        # 結果を表示
-        if matching_rows:
-            print("一致した行:")
-            for row in matching_rows:
+                    del row_list[10]
+                    del row_list[9]
+                    del row_list[8]
+                    del row_list[5]
+                    del row_list[4]
+                    del row_list[2]
+#                    List_sum.append(row_list[0:i+1] + row_list[2:])  # 最初のセルと2番目以降のセルを結合   
+#                    List_sum.append(row_list[0] + " | " + row_list[1] + " | " + row_list[3])
+                    List_sum.append(row_list)
+                    
+        if List_sum:
+            print("結果を表示:")
+#            print(List_sum)
+            for row in List_sum:
                 print(row)
+
+            print("重複を削除:")
+            List_sum_unique = list(map(list, set(map(tuple, List_sum))))
+            for row in List_sum_unique:
+                print(row)
+
+            # DataFrameを作成
+            df = pd.DataFrame(List_sum_unique)
+
+            # Excelファイルに出力
+            output_file = 'output.xlsx'
+            df.to_excel(output_file, index=False, header=False)
+            print(f'Excelファイル "{output_file}" に出力しました。')
+            
+
         else:
             print("一致する行は見つかりませんでした。")
 
