@@ -10,15 +10,18 @@ import os
 from collections import OrderedDict # 重複リストを削除し、順序を保持する
 #
 #
-#   python .\Pickup_from_shiftsummary.py BL2
+#   python .\Pickup_from_shiftsummary.py BL2 10
 #
 
 print("arg len:",len(sys.argv))
 print("argv:",sys.argv)
 print("arg1:" + sys.argv[1])
+print("arg2:" + sys.argv[2])
+
 search_string = sys.argv[1]
 
-url = "http://saclaopr19.spring8.or.jp/~summary/display_ui.html?sort=main_id%20desc&limit=0,60#SEARCH" # JavaScriptでコンテンツが動的に生成されるようなURL
+url = "http://saclaopr19.spring8.or.jp/~summary/display_ui.html?sort=main_id%20desc&limit=0," + sys.argv[2] + "#SEARCH" # JavaScriptでコンテンツが動的に生成されるようなURL
+print ("URL:", url)
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True) # headless=True でGUIなしで実行
@@ -77,14 +80,14 @@ with sync_playwright() as p:
                     # 数字だけ float に変換（整数も小数も対応）
                     converted = [float(x) if x.replace('.', '', 1).isdigit() else x for x in row_list]
                     print(converted)
-                    """
+                    """"""
                     if "加速器調整" in converted[1] or "BL" in converted[1]:
                         print("文字列に 'abc' が含まれています。")
                     else:
                         print("文字列に 'abc' は含まれていません。")
                         List_sum.append(converted)
-                    """
-                    List_sum.append(converted)
+                    
+                    #List_sum.append(converted)
                     
         #exit(0)  # デバッグ用に一時的に終了
         
@@ -100,6 +103,8 @@ with sync_playwright() as p:
             
             for row in List_sum_unique:
                 print(row)
+                
+            List_sum_unique.reverse()
 
             # DataFrameを作成
             df = pd.DataFrame(List_sum_unique)
