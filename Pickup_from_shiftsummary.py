@@ -7,6 +7,7 @@ import sys
 import time
 import datetime
 import os
+from collections import OrderedDict # 重複リストを削除し、順序を保持する
 #
 #
 #   python .\Pickup_from_shiftsummary.py BL2
@@ -17,7 +18,7 @@ print("argv:",sys.argv)
 print("arg1:" + sys.argv[1])
 search_string = sys.argv[1]
 
-url = "http://saclaopr19.spring8.or.jp/~summary/display_ui.html?sort=main_id%20desc&limit=0,6#SEARCH" # JavaScriptでコンテンツが動的に生成されるようなURL
+url = "http://saclaopr19.spring8.or.jp/~summary/display_ui.html?sort=main_id%20desc&limit=0,60#SEARCH" # JavaScriptでコンテンツが動的に生成されるようなURL
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True) # headless=True でGUIなしで実行
@@ -35,8 +36,8 @@ with sync_playwright() as p:
         # JavaScriptが実行された後の完全なHTMLソースを取得
         current_dom_html = page.content()
         #print(current_dom_html)
-        print("\n\n//////////////////////////DOM取得完了//////////////////////////////\n\n\n")
-        
+        print("\n\n\n//////////////////////////DOM取得完了//////////////////////////////\n\n\n")
+        #exit(0)  # デバッグ用に一時的に終了    
         
         # BeautifulSoupでHTMLを解析
         soup = BeautifulSoup(current_dom_html, 'html.parser')
@@ -61,7 +62,7 @@ with sync_playwright() as p:
                     soup_row = BeautifulSoup(html_row, 'html.parser')
                     cells = soup_row.find_all(['th', 'td'])
                     row_list = [cell.get_text(strip=True) for cell in cells]
-                    print(row_list)
+                    #print(row_list)
                     row_list[1] = row_list[1].replace('SASE ', '')
                     row_list[1] = re.sub(r"\(.*?\)", "", row_list[1])
                     row_list[1] = re.sub(r"（.*?）", "", row_list[1])
@@ -76,21 +77,27 @@ with sync_playwright() as p:
                     # 数字だけ float に変換（整数も小数も対応）
                     converted = [float(x) if x.replace('.', '', 1).isdigit() else x for x in row_list]
                     print(converted)
-
+                    """
                     if "加速器調整" in converted[1] or "BL" in converted[1]:
                         print("文字列に 'abc' が含まれています。")
                     else:
                         print("文字列に 'abc' は含まれていません。")
                         List_sum.append(converted)
+                    """
+                    List_sum.append(converted)
                     
+        #exit(0)  # デバッグ用に一時的に終了
+        
         if List_sum:
-            print("結果を表示:")
+            print("結果を表示 List_sum :")
 #            print(List_sum)
             for row in List_sum:
                 print(row)
 
-            print("重複を削除:")
-            List_sum_unique = list(map(list, set(map(tuple, List_sum))))
+            print("重複を削除 List_sum_unique:") 
+            #List_sum_unique = list(map(list, set(map(tuple, List_sum)))) # 重複を削除 すると、順番がめちゃくちゃになってしまう！！！！！！
+            List_sum_unique = list(OrderedDict.fromkeys(map(tuple, List_sum))) # 重複リストを削除し、順序を保持する
+            
             for row in List_sum_unique:
                 print(row)
 
