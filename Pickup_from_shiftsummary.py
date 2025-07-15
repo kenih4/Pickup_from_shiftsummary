@@ -77,11 +77,11 @@ with sync_playwright() as p:
                     del row_list[2]
                     
                     if "30Hz" in row_list[1]:
-                        print("30Hzです。")
-                        row_list.insert(3, '30') # 繰返しを追加
+                        #print("30Hzです。")
+                        row_list.insert(3, '30')    # 繰返しを追加
                     else:
-                        print("30Hzではない")
-                        row_list.insert(3, '-') # 繰返しを追加
+                        #print("30Hzではない")
+                        row_list.insert(3, '-')     # 繰返しを追加
                     
                     
                     
@@ -90,9 +90,9 @@ with sync_playwright() as p:
                     print(converted)
                     """"""
                     if "加速器調整" in converted[1] or "BL" in converted[1]:
-                        print("文字列に 'abc' が含まれています。")
+                        print("文字列に '加速器調整' または 'BL' が含まれています。")
                     else:
-                        print("文字列に 'abc' は含まれていません。")
+#                        print("文字列に 'abc' は含まれていません。")
                         List_sum.append(converted)
                     
                     #List_sum.append(converted)
@@ -100,22 +100,59 @@ with sync_playwright() as p:
         #exit(0)  # デバッグ用に一時的に終了
         
         if List_sum:
-            print("結果を表示 List_sum :")
+            print("\n\n\n結果を表示 List_sum :")
 #            print(List_sum)
             for row in List_sum:
                 print(row)
 
-            print("重複を削除 List_sum_unique:") 
+            print("\n重複を削除 List_sum_unique:") 
             #List_sum_unique = list(map(list, set(map(tuple, List_sum)))) # 重複を削除 すると、順番がめちゃくちゃになってしまう！！！！！！
             List_sum_unique = list(OrderedDict.fromkeys(map(tuple, List_sum))) # 重複リストを削除し、順序を保持する
             
             for row in List_sum_unique:
                 print(row)
+
+
+            print("\n重複するスケジュールをマージする処理   開始") 
+            #"""===============================================
+            # インデックス0をキーにしてマージするための辞書
+            merge_dict = {}
+
+            # リストをループしてマージ処理
+            for item in List_sum_unique:
+                state = item[1]
+                if state not in merge_dict:
+                    merge_dict[state] = [item[0], state, item[2], item[3], item[4], item[5]]  # 初回追加
+                else:
+                    # インデックス1とインデックス2をandで結合
+                    print("\nDEBUG: マージ処理B:", state, "    item: ",item)
+                    if merge_dict[state][2] != item[2]:
+                        merge_dict[state][2] = f"{merge_dict[state][2]} , {item[2]}"
+
+                    if merge_dict[state][3] != item[3]:
+                        merge_dict[state][3] = f"{merge_dict[state][3]} , {item[3]}"
+
+                    if merge_dict[state][4] != item[4]:
+                        merge_dict[state][4] = f"{merge_dict[state][4]} , {item[4]}"
+
+                    if merge_dict[state][5] != item[5]:
+                        merge_dict[state][5] = f"{merge_dict[state][5]} , {item[5]}"
+
+            # 辞書からリストに変換
+            List_sum_unique_merge = list(merge_dict.values())
+
+            # 結果を表示
+            print("\nマージ結果:")
+            for row in List_sum_unique_merge:
+                print(row)            
+            #"""===============================================
+
+#            exit(0)  # デバッグ用に一時的に終了
                        
-            List_sum_unique.reverse()
+            List_sum_unique_merge.reverse()
 
             # DataFrameを作成
-            df = pd.DataFrame(List_sum_unique)
+            df = pd.DataFrame(List_sum_unique_merge)
 
             # Excelファイルに出力
             output_file = 'output_' + search_string + '.xlsx'
