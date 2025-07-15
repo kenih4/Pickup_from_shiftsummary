@@ -75,7 +75,15 @@ with sync_playwright() as p:
                     del row_list[5]
                     del row_list[4]
                     del row_list[2]
-                    row_list.insert(3, '30') # 繰返しを追加
+                    
+                    if "30Hz" in row_list[1]:
+                        print("30Hzです。")
+                        row_list.insert(3, '30') # 繰返しを追加
+                    else:
+                        print("30Hzではない")
+                        row_list.insert(3, '-') # 繰返しを追加
+                    
+                    
                     
                     # 数字だけ float に変換（整数も小数も対応）
                     converted = [float(x) if x.replace('.', '', 1).isdigit() else x for x in row_list]
@@ -103,7 +111,7 @@ with sync_playwright() as p:
             
             for row in List_sum_unique:
                 print(row)
-                
+                       
             List_sum_unique.reverse()
 
             # DataFrameを作成
