@@ -18,7 +18,7 @@ print("argv:",sys.argv)
 print("arg1:" + sys.argv[1])
 print("arg2:" + sys.argv[2])
 
-search_string = sys.argv[1]
+BL = sys.argv[1]
 
 url = "http://saclaopr19.spring8.or.jp/~summary/display_ui.html?sort=main_id%20desc&limit=0," + sys.argv[2] + "#SEARCH" # JavaScriptでコンテンツが動的に生成されるようなURL
 print ("URL:", url)
@@ -49,7 +49,7 @@ with sync_playwright() as p:
         tables = soup.find_all('table')
 
         # 特定の文字列
-        #search_string = 'BL2'  # ここに検索したい文字列を入力
+        #BL = 'BL2'  # ここに検索したい文字列を入力
 
         # 一致した行を格納するリスト
         List_sum = []
@@ -58,7 +58,7 @@ with sync_playwright() as p:
         for table in tables:
             # 各テーブル内の行をループ処理
             for row in table.find_all('tr'):
-                if search_string in row.get_text():
+                if BL in row.get_text():
 #                    print(f"一致した行: {row.get_text()}")
 #                    print(f"一致した行: {row}")
                     html_row = row.decode_contents()  # 行のHTMLを取得
@@ -67,8 +67,8 @@ with sync_playwright() as p:
                     row_list = [cell.get_text(strip=True) for cell in cells]
                     #print(row_list)
                     row_list[1] = row_list[1].replace('SASE ', '')
-                    row_list[1] = re.sub(r"\(.*?\)", "", row_list[1])
-                    row_list[1] = re.sub(r"（.*?）", "", row_list[1])
+                    row_list[1] = re.sub(r"\(.*?\)", "", row_list[1]) # 括弧内の文字列(担当研究員)を削除
+                    row_list[1] = re.sub(r"（.*?）", "", row_list[1]) # 括弧内の文字列(担当研究員)を削除
                     del row_list[10]
                     del row_list[9]
                     del row_list[8]
@@ -81,9 +81,15 @@ with sync_playwright() as p:
                         row_list.insert(3, '30')    # 繰返しを追加
                     else:
                         #print("30Hzではない")
-                        row_list.insert(3, '-')     # 繰返しを追加
+                        row_list.insert(3, '繰返し要確認')     # 繰返しを追加
                     
-                    
+                    row_list.append(BL)
+                    if "+" in row_list[1]:
+                        row_list.append('二色光実験')
+                    elif "seed" in row_list[1].lower(): #文字列に特定の文字が含まれるかどうかを判定する際、大文字と小文字を区別しないようにするには、文字列をすべて小文字または大文字に変換してから比較する
+                        row_list.append('SEED')
+                    else:
+                        row_list.append('')
                     
                     # 数字だけ float に変換（整数も小数も対応）
                     converted = [float(x) if x.replace('.', '', 1).isdigit() else x for x in row_list]
@@ -122,9 +128,8 @@ with sync_playwright() as p:
             for item in List_sum_unique:
                 state = item[1]
                 if state not in merge_dict:
-                    merge_dict[state] = [item[0], state, item[2], item[3], item[4], item[5]]  # 初回追加
+                    merge_dict[state] = [item[0], state, item[2], item[3], item[4], item[5], item[6], item[7]]  # 初回追加
                 else:
-                    # インデックス1とインデックス2をandで結合
                     print("\nDEBUG: マージ処理B:", state, "    item: ",item)
                     if merge_dict[state][2] != item[2]:
                         merge_dict[state][2] = f"{merge_dict[state][2]} , {item[2]}"
@@ -155,7 +160,7 @@ with sync_playwright() as p:
             df = pd.DataFrame(List_sum_unique_merge)
 
             # Excelファイルに出力
-            output_file = 'output_' + search_string + '.xlsx'
+            output_file = 'Pickup_from_shiftsummary_' + BL + '.xlsx'
             df.to_excel(output_file, index=False, header=False)
             print(f'Excelファイル "{output_file}" に出力しました。')
             if abs(time.time() - os.path.getmtime(output_file))<10:
