@@ -13,10 +13,14 @@ from collections import OrderedDict # 重複リストを削除し、順序を保
 #   python .\Pickup_from_shiftsummary.py BL2 10
 #
 
+
 print("arg len:",len(sys.argv))
 print("argv:",sys.argv)
 print("arg1:" + sys.argv[1])
 print("arg2:" + sys.argv[2])
+if sys.argv[2] > 1000:
+    print("値が大きいけど大丈夫？")
+    sys.exit(1)
 
 BL = sys.argv[1]
 
@@ -48,9 +52,6 @@ with sync_playwright() as p:
         # すべてのテーブルを取得
         tables = soup.find_all('table')
 
-        # 特定の文字列
-        #BL = 'BL2'  # ここに検索したい文字列を入力
-
         # 一致した行を格納するリスト
         List_sum = []
 
@@ -65,11 +66,11 @@ with sync_playwright() as p:
                     soup_row = BeautifulSoup(html_row, 'html.parser')
                     cells = soup_row.find_all(['th', 'td'])
                     row_list = [cell.get_text(strip=True) for cell in cells]
-                    #print(row_list)
+                    print(row_list)
                     row_list[1] = row_list[1].replace('SASE ', '')
                     row_list[1] = re.sub(r"\(.*?\)", "", row_list[1]) # 括弧内の文字列(担当研究員)を削除
                     row_list[1] = re.sub(r"（.*?）", "", row_list[1]) # 括弧内の文字列(担当研究員)を削除
-                    del row_list[10]
+                    del row_list[10] # 待機号機
                     del row_list[9]
                     del row_list[8]
                     del row_list[5]
@@ -83,25 +84,38 @@ with sync_playwright() as p:
                         #print("30Hzではない")
                         row_list.insert(3, '繰返し要確認')     # 繰返しを追加
                     
-                    row_list.append(BL)
+                    
+                    if BL == row_list[0]: # BLを指定して抽出しているので一致しない筈ないが、確認の意味
+                        row_list.append(BL)
+                    else:
+                        row_list.append('BLが不一致')
+                                       
                     if "+" in row_list[1]:
+                        row_list.append('二色光実験')
+                    elif "＋" in row_list[1]:
                         row_list.append('二色光実験')
                     elif "seed" in row_list[1].lower(): #文字列に特定の文字が含まれるかどうかを判定する際、大文字と小文字を区別しないようにするには、文字列をすべて小文字または大文字に変換してから比較する
                         row_list.append('SEED')
                     else:
                         row_list.append('')
                     
+                    
+                    
                     # 数字だけ float に変換（整数も小数も対応）
-                    converted = [float(x) if x.replace('.', '', 1).isdigit() else x for x in row_list]
-                    print(converted)
+                    conv_list = [float(x) if x.replace('.', '', 1).isdigit() else x for x in row_list]
+                    print("\n\n\n数字だけ float に変換したリスト conv_list :")                    
+                    try:
+                        conv_list[5] = int(conv_list[5])  # 強度　整数に変換して小数を切り捨て
+                    except ValueError:
+                        print("無効な文字列です。数値に変換できません。")                    
+                    print(conv_list)
                     """"""
-                    if "加速器調整" in converted[1] or "BL" in converted[1]:
-                        print("文字列に '加速器調整' または 'BL' が含まれています。")
+                    if "加速器調整" in conv_list[1] or "BL" in conv_list[1]:
+                        #print("文字列に '加速器調整' または 'BL' が含まれています。")
+                        pass
                     else:
 #                        print("文字列に 'abc' は含まれていません。")
-                        List_sum.append(converted)
-                    
-                    #List_sum.append(converted)
+                        List_sum.append(conv_list)
                     
         #exit(0)  # デバッグ用に一時的に終了
         
@@ -161,7 +175,7 @@ with sync_playwright() as p:
 
             # Excelファイルに出力
             output_file = 'Pickup_from_shiftsummary_' + BL + '.xlsx'
-            df.to_excel(output_file, index=False, header=False)
+            df.to_excel(output_file, sheet_name=BL, index=False, header=False)
             print(f'Excelファイル "{output_file}" に出力しました。')
             if abs(time.time() - os.path.getmtime(output_file))<10:
 #                input("正常に「.xlsx」が作成されました。\nPress Enter to Exit...")
@@ -181,3 +195,12 @@ with sync_playwright() as p:
 
     finally:
         browser.close()
+
+
+
+
+
+
+
+
+
