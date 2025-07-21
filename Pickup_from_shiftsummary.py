@@ -18,10 +18,15 @@ print("arg len:",len(sys.argv))
 print("argv:",sys.argv)
 print("arg1:" + sys.argv[1])
 print("arg2:" + sys.argv[2])
-if sys.argv[2] > 1000:
-    print("値が大きいけど大丈夫？")
-    sys.exit(1)
-
+try:
+    if int(sys.argv[2]) > 1000:
+        print("値が大きいけど大丈夫？")
+        sys.exit(1)
+except ValueError:
+    print("引数は整数である必要があります。")
+except IndexError:
+    print("引数が不足しています。")
+    
 BL = sys.argv[1]
 
 url = "http://saclaopr19.spring8.or.jp/~summary/display_ui.html?sort=main_id%20desc&limit=0," + sys.argv[2] + "#SEARCH" # JavaScriptでコンテンツが動的に生成されるようなURL
