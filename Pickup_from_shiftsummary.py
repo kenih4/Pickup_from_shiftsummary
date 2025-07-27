@@ -71,10 +71,12 @@ with sync_playwright() as p:
                     soup_row = BeautifulSoup(html_row, 'html.parser')
                     cells = soup_row.find_all(['th', 'td'])
                     row_list = [cell.get_text(strip=True) for cell in cells]
-                    print(row_list)
+                    print("row_list\n",row_list)
                     row_list[1] = row_list[1].replace('SASE ', '')
                     row_list[1] = re.sub(r"\(.*?\)", "", row_list[1]) # 括弧内の文字列(担当研究員)を削除
                     row_list[1] = re.sub(r"（.*?）", "", row_list[1]) # 括弧内の文字列(担当研究員)を削除
+                    row_list[6] = re.sub(r'\s+', '', row_list[6]) # 波長　空白、タブ、改行を削除
+                    row_list[6] = row_list[6].replace('＋', '+')  # 二色実験の時、全角になってることがあるので半角に
                     del row_list[10] # 待機号機
                     del row_list[9]
                     del row_list[8]
@@ -108,12 +110,11 @@ with sync_playwright() as p:
                     
                     # 数字だけ float に変換（整数も小数も対応）
                     conv_list = [float(x) if x.replace('.', '', 1).isdigit() else x for x in row_list]
-                    print("\n\n\n数字だけ float に変換したリスト conv_list :")                    
                     try:
                         conv_list[5] = int(conv_list[5])  # 強度　整数に変換して小数を切り捨て
                     except ValueError:
                         print("無効な文字列です。数値に変換できません。")                    
-                    print(conv_list)
+                    print("\n\n\n数字だけ float に変換したリスト conv_list :",conv_list)
                     """"""
                     if "加速器調整" in conv_list[1] or "BL" in conv_list[1]:
                         #print("文字列に '加速器調整' または 'BL' が含まれています。")
@@ -189,7 +190,7 @@ with sync_playwright() as p:
                 print(f"異常：作成されたはずの.xlsxのタイムスタンプが古いです。 最終更新時刻: {datetime.datetime.fromtimestamp(os.path.getmtime(output_file))}")
          
         else:
-            print("一致する行は見つかりませんでした。")
+            print("重複する行は見つかりませんでした。")
 
         
         
